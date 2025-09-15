@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, MoreVertical, Users, Archive } from "lucide-react"
+import { Search, MoreVertical, MessageCircle, Users, Archive, Settings, Filter } from "lucide-react"
 
 interface ChatSidebarProps {
   selectedChat: string | null
@@ -24,113 +24,131 @@ export function ChatSidebar({ selectedChat, onSelectChat }: ChatSidebarProps) {
       isBot: true,
       functional: true,
     },
-    // Visual-only users (Brazilian names)
     {
       id: "user-1",
-      title: "Ana Silva",
-      lastMessage: "Oi, tudo bem?",
+      title: "CryptoAna",
+      lastMessage: "Acabei de comprar um novo NFT!",
       lastMessageTime: new Date(Date.now() - 3600000).toISOString(),
       unreadCount: 2,
       isBot: false,
       functional: false,
+      avatar: "/crypto-punk-nft-avatar-digital-art.jpg",
     },
     {
       id: "user-2",
-      title: "Bruno Santos",
-      lastMessage: "Vamos nos encontrar hoje?",
+      title: "BitcoinBruno",
+      lastMessage: "Bitcoin está subindo! 🚀",
       lastMessageTime: new Date(Date.now() - 7200000).toISOString(),
       unreadCount: 1,
       isBot: false,
       functional: false,
+      avatar: "/bitcoin-logo-cryptocurrency-golden.jpg",
     },
     {
       id: "user-3",
-      title: "Carla Oliveira",
-      lastMessage: "Obrigada pela ajuda!",
+      title: "NFTCarla",
+      lastMessage: "Minha coleção está crescendo!",
       lastMessageTime: new Date(Date.now() - 10800000).toISOString(),
       unreadCount: 0,
       isBot: false,
       functional: false,
+      avatar: "/colorful-nft-art-digital-collectible.jpg",
     },
     {
       id: "user-4",
-      title: "Diego Ferreira",
-      lastMessage: "Até mais tarde",
+      title: "EthereumDiego",
+      lastMessage: "Smart contracts são o futuro",
       lastMessageTime: new Date(Date.now() - 14400000).toISOString(),
       unreadCount: 0,
       isBot: false,
       functional: false,
+      avatar: "/ethereum-logo-cryptocurrency-purple.jpg",
     },
     {
       id: "user-5",
-      title: "Eduarda Costa",
-      lastMessage: "Perfeito!",
+      title: "DeFiEduarda",
+      lastMessage: "Yield farming está rendendo bem!",
       lastMessageTime: new Date(Date.now() - 18000000).toISOString(),
       unreadCount: 3,
       isBot: false,
       functional: false,
+      avatar: "/defi-cryptocurrency-finance-digital.jpg",
     },
     {
       id: "user-6",
-      title: "Felipe Lima",
-      lastMessage: "Combinado então",
+      title: "MetaverseFelipe",
+      lastMessage: "Comprei um terreno virtual",
       lastMessageTime: new Date(Date.now() - 21600000).toISOString(),
       unreadCount: 0,
       isBot: false,
       functional: false,
+      avatar: "/metaverse-virtual-world-digital-land.jpg",
     },
     {
       id: "user-7",
-      title: "Gabriela Rocha",
-      lastMessage: "Que legal!",
+      title: "CryptoGabi",
+      lastMessage: "Altcoins estão em alta!",
       lastMessageTime: new Date(Date.now() - 25200000).toISOString(),
       unreadCount: 1,
       isBot: false,
       functional: false,
+      avatar: "/cryptocurrency-altcoin-digital-money.jpg",
     },
     {
       id: "user-8",
-      title: "Henrique Alves",
-      lastMessage: "Vou verificar",
+      title: "BlockchainHenrique",
+      lastMessage: "Tecnologia revolucionária",
       lastMessageTime: new Date(Date.now() - 28800000).toISOString(),
       unreadCount: 0,
       isBot: false,
       functional: false,
+      avatar: "/blockchain-technology-digital-chain.jpg",
     },
     {
       id: "user-9",
-      title: "Isabela Martins",
-      lastMessage: "Muito obrigada!",
+      title: "TokenIsabela",
+      lastMessage: "Meus tokens estão valorizando!",
       lastMessageTime: new Date(Date.now() - 32400000).toISOString(),
       unreadCount: 2,
       isBot: false,
       functional: false,
+      avatar: "/crypto-token-digital-currency.jpg",
     },
     {
       id: "user-10",
-      title: "João Pedro",
-      lastMessage: "Falamos amanhã",
+      title: "Web3João",
+      lastMessage: "O futuro é descentralizado",
       lastMessageTime: new Date(Date.now() - 36000000).toISOString(),
       unreadCount: 0,
       isBot: false,
       functional: false,
+      avatar: "/web3-decentralized-internet-future.jpg",
     },
   ]
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
+    const now = new Date()
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } else {
+      return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+      })
+    }
   }
 
   const getChatAvatar = (conversation: any) => {
     if (conversation.isBot) {
       return "/stellar-logo.jpg"
     }
-    return null // No avatar for regular users, will show initials
+    return conversation.avatar
   }
 
   const filteredConversations = conversations.filter(
@@ -143,51 +161,63 @@ export function ChatSidebar({ selectedChat, onSelectChat }: ChatSidebarProps) {
     if (chat.functional) {
       onSelectChat(chat.id)
     }
-    // Non-functional chats do nothing when clicked
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#111b21]">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-[#202c33]">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src="/user-profile-illustration.png" />
-          <AvatarFallback>ME</AvatarFallback>
-        </Avatar>
-        <div className="flex items-center gap-6 text-[#aebac1]">
-          <Users className="h-5 w-5 cursor-pointer hover:text-white" />
-          <Archive className="h-5 w-5 cursor-pointer hover:text-white" />
-          <MoreVertical className="h-5 w-5 cursor-pointer hover:text-white" />
+    <div className="fixed left-0 top-0 h-full w-[400px] flex flex-col bg-[#0b141a] border-r border-[#313d45] z-10">
+      <div className="flex items-center justify-between px-4 py-4 bg-[#202c33] border-b border-[#313d45]">
+        <div className="flex items-center gap-3">
+          <h1 className="text-[#e9edef] text-[19px] font-bold">WhatsApp</h1>
+        </div>
+        <div className="flex items-center gap-5 text-[#aebac1]">
+          <Users className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
+          <MessageCircle className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
+          <MoreVertical className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
         </div>
       </div>
 
-      {/* Search */}
-      <div className="p-3 bg-[#111b21]">
+      <div className="px-3 py-3 bg-[#0b141a]">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#aebac1]" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#8696a0]" />
           <Input
-            placeholder="Search or start new chat"
+            placeholder="Pesquisar ou começar uma nova conversa"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-[#202c33] border-none text-white placeholder:text-[#aebac1] focus:bg-[#2a3942]"
+            className="pl-12 pr-4 py-2 bg-[#202c33] border-none text-[#e9edef] placeholder:text-[#8696a0] focus:bg-[#2a3942] rounded-lg h-9 text-[15px]"
           />
         </div>
       </div>
 
-      {/* Chat List */}
+      <div className="flex items-center gap-6 px-3 py-2 bg-[#0b141a] border-b border-[#313d45]">
+        <div className="flex items-center gap-2 text-[#00a884] text-[14px] font-medium cursor-pointer border-b-2 border-[#00a884] pb-2">
+          <span>Todas</span>
+        </div>
+        <div className="flex items-center gap-2 text-[#8696a0] text-[14px] cursor-pointer hover:text-[#e9edef] pb-2">
+          <span>Não lidas</span>
+        </div>
+        <div className="flex items-center gap-2 text-[#8696a0] text-[14px] cursor-pointer hover:text-[#e9edef] pb-2">
+          <span>Grupos</span>
+        </div>
+        <div className="ml-auto">
+          <Filter className="h-4 w-4 text-[#8696a0] cursor-pointer hover:text-[#e9edef]" />
+        </div>
+      </div>
+
       <ScrollArea className="flex-1">
         <div className="space-y-0">
           {filteredConversations.map((chat) => (
             <div
               key={chat.id}
               onClick={() => handleChatClick(chat)}
-              className={`flex items-center gap-3 p-3 ${
+              className={`flex items-center gap-3 px-3 py-3 border-b border-[#313d45]/20 ${
                 chat.functional ? "cursor-pointer hover:bg-[#202c33]" : "cursor-default opacity-75"
-              } ${selectedChat === chat.id ? "bg-[#2a3942]" : ""}`}
+              } ${selectedChat === chat.id ? "bg-[#2a3942]" : ""} transition-colors`}
             >
               <Avatar className="h-12 w-12 flex-shrink-0">
                 <AvatarImage src={getChatAvatar(chat) || undefined} />
-                <AvatarFallback className={`${chat.isBot ? "bg-[#00a884]" : "bg-[#6b7280]"} text-white`}>
+                <AvatarFallback
+                  className={`${chat.isBot ? "bg-[#00a884]" : "bg-[#6b7280]"} text-white text-[14px] font-medium`}
+                >
                   {chat.title
                     .split(" ")
                     .map((n) => n[0])
@@ -195,16 +225,18 @@ export function ChatSidebar({ selectedChat, onSelectChat }: ChatSidebarProps) {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-white truncate">{chat.title}</h3>
-                  <span className="text-xs text-[#aebac1] flex-shrink-0">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-normal text-[#e9edef] truncate text-[17px]">{chat.title}</h3>
+                  <span className="text-[12px] text-[#8696a0] flex-shrink-0">
                     {chat.lastMessageTime ? formatTime(chat.lastMessageTime) : ""}
                   </span>
                 </div>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-sm text-[#aebac1] truncate">{chat.lastMessage || "No messages yet"}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[14px] text-[#8696a0] truncate leading-tight max-w-[200px]">
+                    {chat.lastMessage || "Nenhuma mensagem"}
+                  </p>
                   {chat.unreadCount > 0 && (
-                    <span className="bg-[#00a884] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0 ml-2">
+                    <span className="bg-[#00a884] text-[#111b21] text-[12px] rounded-full h-5 min-w-[20px] flex items-center justify-center flex-shrink-0 ml-2 font-semibold px-1">
                       {chat.unreadCount}
                     </span>
                   )}
@@ -214,6 +246,13 @@ export function ChatSidebar({ selectedChat, onSelectChat }: ChatSidebarProps) {
           ))}
         </div>
       </ScrollArea>
+
+      <div className="px-3 py-2 bg-[#0b141a] border-t border-[#313d45]">
+        <div className="flex items-center gap-4 text-[#8696a0]">
+          <Archive className="h-5 w-5 cursor-pointer hover:text-[#e9edef] transition-colors" />
+          <Settings className="h-5 w-5 cursor-pointer hover:text-[#e9edef] transition-colors" />
+        </div>
+      </div>
     </div>
   )
 }

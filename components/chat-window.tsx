@@ -7,20 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  Search,
-  MoreVertical,
-  Phone,
-  Video,
-  Smile,
-  Paperclip,
-  Mic,
-  Send,
-  AlertCircle,
-  RefreshCw,
-  Wifi,
-  WifiOff,
-} from "lucide-react"
+import { Search, MoreVertical, Phone, Video, Smile, Paperclip, Mic, Send, AlertCircle, RefreshCw } from "lucide-react"
 import { useBackendChat } from "@/hooks/use-backend-chat"
 import { useWebSocket } from "@/hooks/use-websocket"
 import { useTypingIndicator } from "@/hooks/use-typing-indicator"
@@ -153,13 +140,15 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0b141a]">
+    <div className="flex flex-col h-full bg-[#0b141a] relative">
       {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 bg-[#202c33] border-b border-[#313d45]">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#202c33] border-l border-[#313d45]">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={chatInfo.avatar || "/placeholder.svg"} />
-            <AvatarFallback className={`${isStellarBot ? "bg-[#00a884]" : "bg-[#6b7280]"} text-white`}>
+            <AvatarFallback
+              className={`${isStellarBot ? "bg-[#00a884]" : "bg-[#6b7280]"} text-white text-sm font-medium`}
+            >
               {chatInfo.name
                 .split(" ")
                 .map((n) => n[0])
@@ -167,64 +156,54 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
             </AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="font-medium text-white">{chatInfo.name}</h2>
-            <div className="flex items-center gap-2">
-              <p className={`text-xs ${getStatusColor()}`}>
-                {isStellarBot
-                  ? isLoading
-                    ? "Typing..."
-                    : otherUserTyping
-                      ? "Bot is typing..."
-                      : getConnectionStatus()
-                  : "Offline"}
-              </p>
-              {isStellarBot ? (
-                wsStatus === "connected" ? (
-                  <Wifi className="h-3 w-3 text-green-400" />
-                ) : (
-                  <WifiOff className="h-3 w-3 text-red-400" />
-                )
-              ) : (
-                <WifiOff className="h-3 w-3 text-gray-400" />
-              )}
-            </div>
+            <h2 className="font-normal text-[#e9edef] text-[17px]">{chatInfo.name}</h2>
+            <p className="text-xs text-[#8696a0]">
+              {isStellarBot ? (isLoading ? "digitando..." : otherUserTyping ? "digitando..." : "online") : "offline"}
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-6 text-[#aebac1]">
-          <Video className="h-5 w-5 cursor-pointer hover:text-white" />
-          <Phone className="h-5 w-5 cursor-pointer hover:text-white" />
-          <Search className="h-5 w-5 cursor-pointer hover:text-white" />
-          <MoreVertical className="h-5 w-5 cursor-pointer hover:text-white" />
+        <div className="flex items-center gap-5 text-[#aebac1]">
+          <Video className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
+          <Phone className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
+          <Search className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
+          <MoreVertical className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
         </div>
       </div>
 
-      {/* Messages Area */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 bg-[#0b141a]">
-        <div className="p-4 min-h-full bg-[#0b141a]">
-          <div className="space-y-4">
+      {/* Messages Area with authentic WhatsApp background pattern */}
+      <ScrollArea
+        ref={scrollAreaRef}
+        className="flex-1"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='whatsapp-bg' x='0' y='0' width='100' height='100' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0 0h100v100H0z' fill='%230b141a'/%3E%3Cpath d='M20 20h60v60H20z' fill='none' stroke='%23182229' strokeWidth='0.5' opacity='0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23whatsapp-bg)'/%3E%3C/svg%3E")`,
+        }}
+      >
+        <div className="p-4 min-h-full">
+          <div className="space-y-2">
             {isStellarBot ? (
               <>
                 {messages.map((message) => (
                   <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
-                      className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                      className={`max-w-[65%] rounded-lg px-3 py-2 relative ${
                         message.role === "user"
-                          ? "bg-[#005c4b] text-white"
+                          ? "bg-[#005c4b] text-white shadow-md"
                           : message.metadata?.isError
-                            ? "bg-red-900/20 border border-red-500/30 text-red-400"
-                            : "bg-[#202c33] text-white"
+                            ? "bg-[#202c33] border border-red-500/30 text-red-400"
+                            : "bg-[#202c33] text-white shadow-md"
                       }`}
+                      style={{
+                        borderRadius: message.role === "user" ? "7.5px 7.5px 0px 7.5px" : "7.5px 7.5px 7.5px 0px",
+                      }}
                     >
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      <p className="text-[14.2px] leading-[1.4] whitespace-pre-wrap break-words">{message.content}</p>
                       <div className="flex items-center justify-end gap-1 mt-1">
-                        <span className="text-xs text-[#aebac1]">{formatTime(message.timestamp)}</span>
+                        <span className="text-[11px] text-[#ffffff99] opacity-70">{formatTime(message.timestamp)}</span>
                         {message.role === "user" && !message.metadata?.isError && (
-                          <div className="flex">
-                            <div className="w-4 h-3 text-[#aebac1]">
-                              <svg viewBox="0 0 16 11" className="w-full h-full fill-current">
-                                <path d="M11.071 1.429L4.5 8 1.429 4.929 0 6.357 4.5 10.857 12.5 2.857z" />
-                              </svg>
-                            </div>
+                          <div className="flex ml-1">
+                            <svg viewBox="0 0 16 11" className="w-4 h-3 fill-[#ffffff99] opacity-70">
+                              <path d="M11.071 1.429L4.5 8 1.429 4.929 0 6.357 4.5 10.857 12.5 2.857z" />
+                            </svg>
                           </div>
                         )}
                       </div>
@@ -251,7 +230,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               </>
             ) : (
               // Empty state for non-functional chats
-              <div className="flex items-center justify-center h-full text-[#aebac1] min-h-[400px]">
+              <div className="flex items-center justify-center h-full text-[#8696a0] min-h-[400px]">
                 <div className="text-center">
                   <p className="text-lg mb-2">Chat não disponível</p>
                   <p className="text-sm">Este usuário está offline</p>
@@ -262,33 +241,33 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
         </div>
       </ScrollArea>
 
-      {/* Message Input - only functional for Stellar bot */}
-      <div className="p-4 bg-[#202c33]">
+      {/* Message Input */}
+      <div className="px-4 py-3 bg-[#202c33]">
         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="text-[#aebac1] hover:text-white hover:bg-[#2a3942]"
+            className="text-[#8696a0] hover:text-white hover:bg-[#2a3942] rounded-full h-10 w-10"
             disabled={!isStellarBot}
           >
-            <Smile className="h-5 w-5" />
+            <Smile className="h-6 w-6" />
           </Button>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="text-[#aebac1] hover:text-white hover:bg-[#2a3942]"
+            className="text-[#8696a0] hover:text-white hover:bg-[#2a3942] rounded-full h-10 w-10"
             disabled={!isStellarBot}
           >
-            <Paperclip className="h-5 w-5" />
+            <Paperclip className="h-6 w-6" />
           </Button>
           <div className="flex-1 relative">
             <Input
               value={inputMessage}
               onChange={handleInputChange}
-              placeholder={isStellarBot ? "Type a message" : "Chat não disponível"}
-              className="bg-[#2a3942] border-none text-white placeholder:text-[#aebac1] pr-12"
+              placeholder={isStellarBot ? "Digite uma mensagem" : "Chat não disponível"}
+              className="bg-[#2a3942] border-none text-[#e9edef] placeholder:text-[#8696a0] rounded-lg h-10 px-4 text-[15px]"
               disabled={isLoading || !isStellarBot}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && isStellarBot) {
@@ -302,7 +281,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
             <Button
               type="submit"
               size="icon"
-              className="bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+              className="bg-[#00a884] hover:bg-[#00a884]/90 text-white rounded-full h-10 w-10"
               disabled={isLoading}
             >
               <Send className="h-5 w-5" />
@@ -312,10 +291,10 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
               type="button"
               variant="ghost"
               size="icon"
-              className="text-[#aebac1] hover:text-white hover:bg-[#2a3942]"
+              className="text-[#8696a0] hover:text-white hover:bg-[#2a3942] rounded-full h-10 w-10"
               disabled={!isStellarBot}
             >
-              <Mic className="h-5 w-5" />
+              <Mic className="h-6 w-6" />
             </Button>
           )}
         </form>
