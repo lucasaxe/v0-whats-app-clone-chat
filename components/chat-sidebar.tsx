@@ -146,7 +146,7 @@ export function ChatSidebar({ selectedChat, onSelectChat }: ChatSidebarProps) {
 
   const getChatAvatar = (conversation: any) => {
     if (conversation.isBot) {
-      return "/stellar-logo.jpg"
+      return "/stellar-logo.png"
     }
     return conversation.avatar
   }

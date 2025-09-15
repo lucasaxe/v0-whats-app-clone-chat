@@ -102,7 +102,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
 
   const getChatInfo = (chatId: string) => {
     if (chatId === "stellar-bot") {
-      return { name: "Stellar Conversational Assistant", avatar: "/stellar-logo.jpg" }
+      return { name: "Stellar Conversational Assistant", avatar: "/stellar-logo.png" }
     }
 
     // For non-functional chats, show user info but no functionality
