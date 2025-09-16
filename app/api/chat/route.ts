@@ -1,32 +1,48 @@
-import { openai } from "@ai-sdk/openai"
-import { streamText } from "ai"
+// src/app/api/chat/route.ts
+
+import { NextResponse } from "next/server";
+
+// Pega a URL da sua API Python a partir de uma variável de ambiente
+const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://localhost:5000/agent";
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json()
+    // 1. Pega a mensagem que o frontend enviou
+    const { messages } = await req.json();
+    const userMessage = messages[messages.length - 1]; // Pega a última mensagem (a do usuário)
 
-    const result = streamText({
-      model: openai("gpt-4o-mini"),
-      messages,
-      system: `You are a helpful AI assistant in a WhatsApp-like chat interface. 
+    // 2. Prepara os dados para enviar para a API Python (no formato que ela espera)
+    const dataToSend = {
+      query: userMessage.content, // Corrigido de 'message_text' para 'query'
+      session_id: "web-session-illustrative" // Corrigido e usando um ID fixo ilustrativo
+    };
 
-Key guidelines:
-- Keep responses conversational and friendly, like chatting with a friend
-- Use natural language and avoid overly formal responses
-- Break longer responses into multiple shorter messages when appropriate
-- You can help with various tasks: answering questions, providing information, having conversations, helping with problems
-- If asked about connecting to external systems or APIs, explain that you're ready to integrate with backend services
-- Be helpful, informative, and engaging
-- Use emojis occasionally to make conversations more natural (but don't overuse them)
+    // 3. Repassa a requisição para a sua API Python usando fetch
+    const pythonApiResponse = await fetch(PYTHON_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dataToSend),
+    });
 
-Remember: You're in a chat interface, so keep the tone casual and conversational.`,
-      temperature: 0.7,
-      maxTokens: 500,
-    })
+    if (!pythonApiResponse.ok) {
+      // Se a API Python der erro, repassa o erro para o frontend
+      const errorText = await pythonApiResponse.text();
+      throw new Error(`Python API Error: ${errorText}`);
+    }
 
-    return result.toDataStreamResponse()
+    // 4. Pega a resposta da API Python
+    const pythonApiData = await pythonApiResponse.json();
+
+    // 5. Envia a resposta de volta para o frontend
+    // O ideal é que sua API Python retorne um JSON com uma chave "message"
+    // Ex: {"result": {"message": "Olá! Processado."}}
+    // Vamos adaptar para ler a resposta corretamente.
+    const botResponse = pythonApiData.result?.message || "Não recebi uma resposta válida da API.";
+    
+    return NextResponse.json({ content: botResponse });
+
   } catch (error) {
-    console.error("Chat API error:", error)
-    return new Response("Internal Server Error", { status: 500 })
+    console.error("Next.js API proxy error:", error);
+    return new Response("Internal Server Error", { status: 500 });
   }
 }

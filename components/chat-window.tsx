@@ -1,304 +1,157 @@
-"use client"
+// src/components/chat-window.tsx
 
-import type React from "react"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, MoreVertical, Phone, Video, Smile, Paperclip, Mic, Send, AlertCircle, RefreshCw } from "lucide-react"
-import { useBackendChat } from "@/hooks/use-backend-chat"
-import { useWebSocket } from "@/hooks/use-websocket"
-import { useTypingIndicator } from "@/hooks/use-typing-indicator"
+import React, { useState, useEffect, useRef, FormEvent } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { MoreVertical, Phone, Send, Smile, Paperclip, Mic, Video, Search } from "lucide-react";
 
-interface ChatWindowProps {
-  chatId: string
-}
+type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt?: Date;
+};
 
-export function ChatWindow({ chatId }: ChatWindowProps) {
-  const [inputMessage, setInputMessage] = useState("")
-  const [otherUserTyping, setOtherUserTyping] = useState(false)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
+export function ChatWindow({ chatId }: { chatId: string }) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // --- Refs para controlar os elementos da tela ---
+  const inputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaViewportRef = useRef<HTMLDivElement>(null); // Ref para a área de scroll
 
-  const isStellarBot = chatId === "stellar-bot"
-
-  const { messages, isLoading, error, sendMessage, retry, clearError } = useBackendChat({
-    conversationId: chatId,
-    fallbackToAI: true,
-    enabled: isStellarBot, // Only enable for Stellar bot
-  })
-
-  // WebSocket for real-time features (only for Stellar bot)
-  const { status: wsStatus, sendTyping } = useWebSocket({
-    conversationId: chatId,
-    enabled: isStellarBot,
-    onMessage: (message) => {
-      if (message.type === "message") {
-        console.log("Received real-time message:", message)
-      }
-    },
-    onTyping: (isTyping, conversationId) => {
-      if (conversationId === chatId) {
-        setOtherUserTyping(isTyping)
-      }
-    },
-  })
-
-  // Typing indicator
-  const { startTyping, stopTyping } = useTypingIndicator({
-    onTypingChange: (isTyping) => {
-      if (isStellarBot) {
-        sendTyping(isTyping)
-      }
-    },
-    debounceMs: 1500,
-  })
-
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector("[data-radix-scroll-area-viewport]")
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight
-      }
-    }
-  }
-
+  // --- CORREÇÃO DE AUTO-SCROLL (MAIS ROBUSTO) ---
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, otherUserTyping])
+    // Esta função rola a área de chat para o final.
+    const scrollToBottom = () => {
+      if (scrollAreaViewportRef.current) {
+        scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
+      }
+    };
+    
+    // Usamos um pequeno timeout para garantir que o React já renderizou a nova mensagem na tela
+    // antes de tentarmos rolar. Isso resolve problemas de timing.
+    const timer = setTimeout(scrollToBottom, 50);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isStellarBot) return // Disable input for non-functional chats
+    // Limpamos o timeout se o componente for desmontado para evitar erros.
+    return () => clearTimeout(timer);
+  }, [messages, isLoading]); // Roda sempre que as mensagens ou o estado de 'loading' mudam.
 
-    setInputMessage(e.target.value)
-    if (e.target.value.trim()) {
-      startTyping()
-    } else {
-      stopTyping()
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: input,
+      createdAt: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [...messages, userMessage] }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha na resposta da API');
+      }
+
+      const data = await response.json();
+      
+      const botMessage: Message = {
+        id: `bot-${Date.now()}`,
+        role: 'assistant',
+        content: data.content,
+        createdAt: new Date(),
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+
+    } catch (error) {
+      console.error("Erro no handleSubmit:", error);
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: 'Desculpe, ocorreu um erro ao buscar a resposta.',
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+      // --- CORREÇÃO DE AUTO-FOCO ---
+      // Garante que, após todo o processo, o cursor volte para a caixa de texto.
+      inputRef.current?.focus(); 
     }
-  }
+  };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!inputMessage.trim() || !isStellarBot) return
-
-    const messageToSend = inputMessage.trim()
-    setInputMessage("") // Clear input immediately without waiting for response
-
-    stopTyping()
-
-    sendMessage(messageToSend)
-    clearError()
-  }
-
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-  }
-
-  const getChatInfo = (chatId: string) => {
-    if (chatId === "stellar-bot") {
-      return { name: "Stellar Conversational Assistant", avatar: "/stellar-logo.png" }
-    }
-
-    // For non-functional chats, show user info but no functionality
-    const userMap: Record<string, { name: string }> = {
-      "user-1": { name: "Ana Silva" },
-      "user-2": { name: "Bruno Santos" },
-      "user-3": { name: "Carla Oliveira" },
-      "user-4": { name: "Diego Ferreira" },
-      "user-5": { name: "Eduarda Costa" },
-      "user-6": { name: "Felipe Lima" },
-      "user-7": { name: "Gabriela Rocha" },
-      "user-8": { name: "Henrique Alves" },
-      "user-9": { name: "Isabela Martins" },
-      "user-10": { name: "João Pedro" },
-    }
-
-    return userMap[chatId] || { name: "User", avatar: null }
-  }
-
-  const chatInfo = getChatInfo(chatId)
-
-  const getConnectionStatus = () => {
-    if (!isStellarBot) return "Offline"
-    if (wsStatus === "connected") return "Online"
-    if (wsStatus === "connecting") return "Connecting..."
-    if (wsStatus === "error") return "Connection error"
-    return "Offline"
-  }
-
-  const getStatusColor = () => {
-    if (!isStellarBot) return "text-gray-400"
-    if (wsStatus === "connected") return "text-green-400"
-    if (wsStatus === "connecting") return "text-yellow-400"
-    return "text-red-400"
-  }
-
+  const formatTime = (timestamp?: Date) => {
+    if (!timestamp) return "";
+    return timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  };
+  
   return (
     <div className="flex flex-col h-full bg-[#0b141a] relative">
-      {/* Chat Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#202c33] border-l border-[#313d45]">
+       {/* Header (Fixo no topo) */}
+       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-[#202c33] border-l border-[#313d45]">
         <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={chatInfo.avatar || "/placeholder.svg"} />
-            <AvatarFallback
-              className={`${isStellarBot ? "bg-[#00a884]" : "bg-[#6b7280]"} text-white text-sm font-medium`}
-            >
-              {chatInfo.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
+          <Avatar className="h-10 w-10"><AvatarImage src="/stellar-logo.png" /><AvatarFallback className="bg-[#00a884] text-white">SA</AvatarFallback></Avatar>
           <div>
-            <h2 className="font-normal text-[#e9edef] text-[17px]">{chatInfo.name}</h2>
-            <p className="text-xs text-[#8696a0]">
-              {isStellarBot ? (isLoading ? "digitando..." : otherUserTyping ? "digitando..." : "online") : "offline"}
-            </p>
+            <h2 className="font-normal text-[#e9edef] text-[17px]">TalkToStellar</h2>
+            <p className="text-xs text-[#8696a0]">{isLoading ? "digitando..." : "online"}</p>
           </div>
         </div>
-        <div className="flex items-center gap-5 text-[#aebac1]">
-          <Video className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
-          <Phone className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
-          <Search className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
-          <MoreVertical className="h-5 w-5 cursor-pointer hover:text-white transition-colors" />
-        </div>
+        <div className="flex items-center gap-5 text-[#aebac1]"><Video className="h-5 w-5 cursor-pointer"/><Phone className="h-5 w-5 cursor-pointer"/><Search className="h-5 w-5 cursor-pointer"/><MoreVertical className="h-5 w-5 cursor-pointer"/></div>
       </div>
 
-      {/* Messages Area with authentic WhatsApp background pattern */}
-      <ScrollArea
-        ref={scrollAreaRef}
-        className="flex-1"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='whatsapp-bg' x='0' y='0' width='100' height='100' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0 0h100v100H0z' fill='%230b141a'/%3E%3Cpath d='M20 20h60v60H20z' fill='none' stroke='%23182229' strokeWidth='0.5' opacity='0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23whatsapp-bg)'/%3E%3C/svg%3E")`,
-        }}
-      >
-        <div className="p-4 min-h-full">
-          <div className="space-y-2">
-            {isStellarBot ? (
-              <>
-                {messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[65%] rounded-lg px-3 py-2 relative ${
-                        message.role === "user"
-                          ? "bg-[#005c4b] text-white shadow-md"
-                          : message.metadata?.isError
-                            ? "bg-[#202c33] border border-red-500/30 text-red-400"
-                            : "bg-[#202c33] text-white shadow-md"
-                      }`}
-                      style={{
-                        borderRadius: message.role === "user" ? "7.5px 7.5px 0px 7.5px" : "7.5px 7.5px 7.5px 0px",
-                      }}
-                    >
-                      <p className="text-[14.2px] leading-[1.4] whitespace-pre-wrap break-words">{message.content}</p>
-                      <div className="flex items-center justify-end gap-1 mt-1">
-                        <span className="text-[11px] text-[#ffffff99] opacity-70">{formatTime(message.timestamp)}</span>
-                        {message.role === "user" && !message.metadata?.isError && (
-                          <div className="flex ml-1">
-                            <svg viewBox="0 0 16 11" className="w-4 h-3 fill-[#ffffff99] opacity-70">
-                              <path d="M11.071 1.429L4.5 8 1.429 4.929 0 6.357 4.5 10.857 12.5 2.857z" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {error && (
-                  <div className="flex justify-center">
-                    <div className="bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg px-4 py-2 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">{error}</span>
-                      <Button
-                        onClick={retry}
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300 h-auto p-1"
-                      >
-                        <RefreshCw className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              // Empty state for non-functional chats
-              <div className="flex items-center justify-center h-full text-[#8696a0] min-h-[400px]">
-                <div className="text-center">
-                  <p className="text-lg mb-2">Chat não disponível</p>
-                  <p className="text-sm">Este usuário está offline</p>
+      <ScrollArea className="flex-1 min-h-0" style={{ backgroundImage: `url('/bg-chat-tile-light.png')`, backgroundRepeat: 'repeat' }}>
+        {/* Adicionamos a ref diretamente ao Viewport da ScrollArea */}
+        <div ref={scrollAreaViewportRef} className="h-full w-full overflow-y-auto">
+          <div className="p-4 space-y-2">
+            {messages.map((m) => (
+              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[65%] rounded-lg px-3 py-2 text-[14.2px] shadow-md ${m.role === "user" ? "bg-[#005c4b] text-white" : "bg-[#202c33] text-white"}`}>
+                  <p className="whitespace-pre-wrap">{m.content}</p>
+                  <div className="text-right text-[11px] text-[#ffffff99] mt-1">{formatTime(m.createdAt)}</div>
                 </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
       </ScrollArea>
 
-      {/* Message Input */}
-      <div className="px-4 py-3 bg-[#202c33]">
-        <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="text-[#8696a0] hover:text-white hover:bg-[#2a3942] rounded-full h-10 w-10"
-            disabled={!isStellarBot}
-          >
-            <Smile className="h-6 w-6" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="text-[#8696a0] hover:text-white hover:bg-[#2a3942] rounded-full h-10 w-10"
-            disabled={!isStellarBot}
-          >
-            <Paperclip className="h-6 w-6" />
-          </Button>
-          <div className="flex-1 relative">
-            <Input
-              value={inputMessage}
-              onChange={handleInputChange}
-              placeholder={isStellarBot ? "Digite uma mensagem" : "Chat não disponível"}
-              className="bg-[#2a3942] border-none text-[#e9edef] placeholder:text-[#8696a0] rounded-lg h-10 px-4 text-[15px]"
-              disabled={isLoading || !isStellarBot}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && isStellarBot) {
-                  e.preventDefault()
-                  handleSendMessage(e)
-                }
-              }}
-            />
-          </div>
-          {inputMessage.trim() && isStellarBot ? (
-            <Button
-              type="submit"
-              size="icon"
-              className="bg-[#00a884] hover:bg-[#00a884]/90 text-white rounded-full h-10 w-10"
-              disabled={isLoading}
-            >
-              <Send className="h-5 w-5" />
+      {/* Input de Mensagem (Fixo embaixo) */}
+      <div className="flex-shrink-0 px-4 py-3 bg-[#202c33]">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <Smile className="h-6 w-6 text-[#8696a0]" />
+          <Paperclip className="h-6 w-6 text-[#8696a0]" />
+          <Input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Digite uma mensagem"
+            className="flex-1 bg-[#2a3942] border-none text-[#e9edef] placeholder:text-[#8696a0] rounded-lg h-10 px-4"
+            disabled={isLoading}
+          />
+          {input.trim() ? (
+            <Button type="submit" size="icon" className="bg-transparent hover:bg-transparent text-[#8696a0] rounded-full h-10 w-10" disabled={isLoading}>
+              <Send className="h-6 w-6" />
             </Button>
           ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-[#8696a0] hover:text-white hover:bg-[#2a3942] rounded-full h-10 w-10"
-              disabled={!isStellarBot}
-            >
-              <Mic className="h-6 w-6" />
-            </Button>
+            <Mic className="h-6 w-6 text-[#8696a0]" />
           )}
         </form>
       </div>
     </div>
-  )
+  );
 }

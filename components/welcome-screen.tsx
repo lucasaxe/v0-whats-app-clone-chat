@@ -1,4 +1,6 @@
-import { Lock } from "lucide-react"
+// src/components/welcome-screen.tsx
+
+import { Lock } from "lucide-react";
 
 export function WelcomeScreen() {
   return (
@@ -13,17 +15,18 @@ export function WelcomeScreen() {
         </div>
       </div>
 
-      <h1 className="text-[32px] font-light text-[#e9edef] mb-7 tracking-wide">WhatsApp Web</h1>
+      <h1 className="text-[32px] font-light text-[#e9edef] mb-7 tracking-wide">
+        Talk To Stellar Interface
+      </h1>
 
       <p className="text-[#8696a0] text-[14px] max-w-md leading-[1.4] mb-8">
-        Envie e receba mensagens sem precisar manter o seu telefone conectado à internet. Use o WhatsApp em até 4
-        dispositivos conectados e 1 telefone ao mesmo tempo.
+        Selecione o "TalkToStellar" na barra lateral para iniciar uma conversa. As outras conversas são apenas para demonstração visual.
       </p>
 
       <div className="flex items-center gap-1 text-[#8696a0] text-[14px] mb-8">
         <Lock className="h-4 w-4" />
-        <span>Suas mensagens pessoais são protegidas pela criptografia de ponta a ponta</span>
+        <span>Suas mensagens são processadas pela sua API local.</span>
       </div>
     </div>
-  )
+  );
 }
